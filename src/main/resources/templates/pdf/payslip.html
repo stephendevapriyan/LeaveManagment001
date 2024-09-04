@@ -1,0 +1,81 @@
+<html
+  lang="en"
+  xmlns="http://www.w3.org/1999/xhtml"
+  xmlns:th="http://www.thymeleaf.org"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Employee payslip</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content="payslip" />
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      td {
+        border-top: solid 2px lightgrey;
+      }
+
+      .heading {
+        text-transform: uppercase;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        font-family: "Roboto";
+      }
+
+      .heading > * {
+        margin-top: 10px;
+      }
+
+      .content {
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        width: 90%;
+        margin-top: 40px;
+        margin-left: 120px;
+      }
+
+      .content__item {
+        display: flex;
+        margin-bottom: 10px;
+      }
+    </style>
+  </head>
+
+  <body style="width: 100%">
+    <div class="heading">
+      <h1>payslip</h1>
+      <h3>canvendor software solutions (P) LTD</h3>
+      <p>nagercoil, tamilnadu, phone. no: 9070xxxxxx</p>
+    </div>
+
+    <div class="content">
+      <div class="content__item">
+        <p class="content__item-key">Employee Name</p>
+        <span>:</span>
+        <p th:text="${name}" class="content__item-value">Jhon smith</p>
+      </div>
+
+      <div class="content__item">
+        <p class="content__item-key">Employee Id</p>
+        <span>:</span>
+        <p th:text="${id}" class="content__item-value">10167</p>
+      </div>
+
+      <div class="content__item">
+        <p class="content__item-key">Designation</p>
+        <span>:</span>
+        <p th:text="${designation}" class="content__item-value">
+          Software Engineer Trainee
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
