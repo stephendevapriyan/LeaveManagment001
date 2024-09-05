@@ -8,7 +8,6 @@ import lombok.Data;
 @Builder
 @AllArgsConstructor
 public class ApiResponse<T> {
-
     String message;
     Integer status;
     T data;

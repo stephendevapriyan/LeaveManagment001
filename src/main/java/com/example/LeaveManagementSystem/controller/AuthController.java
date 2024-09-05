@@ -13,11 +13,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.UUID;
 
 @Controller
+@RequestMapping("/api")
 public class AuthController {
 
     @Autowired
@@ -53,7 +55,12 @@ public class AuthController {
 
 
     @PostMapping("/passwords")
-    public String createPassword(@RequestParam UUID id, String password){
-        return service.generatePassword(id,password);
+    public ResponseEntity<String> createPassword(@RequestParam UUID id){
+        try {
+            String password = service.generatePassword(id);
+            return ResponseEntity.status(HttpStatus.OK).body(password);
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+        }
     }
 }

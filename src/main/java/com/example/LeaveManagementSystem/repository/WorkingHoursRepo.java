@@ -7,6 +7,4 @@ import com.example.LeaveManagementSystem.entity.WorkingHours;
 import java.util.UUID;
 
 public interface WorkingHoursRepo extends JpaRepository<WorkingHours, UUID>  {
-
-    
 } 
