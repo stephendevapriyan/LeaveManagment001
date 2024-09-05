@@ -227,39 +227,6 @@ public class LeaveServiceImpl implements LeaveService {
         return false;
     }
 
-    @Override
-    public String generatePassword(UUID id, String password) {
-        if (password.length() < 8) {
-            return "password length is short";
-        }
-        if (!Pattern.compile("[A-Z]").matcher(password).find()) {
-            return "Password should contain atleast one uppercase character";
-        }
-        if (!Pattern.compile("[a-z]").matcher(password).find()) {
-            return "Password should contain atleast one lowecase character";
-        }
-        if (!Pattern.compile("[0-9]").matcher(password).find()) {
-            return "Password should contain atleast one character";
-        }
-        if (!Pattern.compile("[^a-zA-Z0-9]").matcher(password).find()) {
-            return "There is no shecial character";
-        }
-
-        EmployeeEntity employeeEntity = erepository.findById(id).get();
-        employeeEntity.setPassword(password);
-        String encrypting = passwordEncoder.encode(password);
-        employeeEntity.setEncryptedPassword(encrypting);
-        erepository.save(employeeEntity);
-        return "password generated successfully";
-    }
-
-    @Override
-    public boolean hasUserSetPassword(String email) throws UsernameNotFoundException {
-        Optional<EmployeeEntity> employee = erepository.findByEmail(email);
-        if (employee.isEmpty()) throw new UsernameNotFoundException("user not found");
-        return employee.get().getPassword() != null && !employee.get().getPassword().isBlank();
-    }
-
     // apply leave
 
     @Override

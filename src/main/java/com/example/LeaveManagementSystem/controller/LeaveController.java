@@ -57,35 +57,6 @@ public class LeaveController {
 
     }
 
-
-    @GetMapping("/login")
-    public ResponseEntity<String> login(@RequestParam String email, @RequestParam String password) {
-        try {
-            if (!service.hasUserSetPassword(email)) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("user has not set the password");
-            }
-
-            UserDetails userDetails = userDetailService.loadUserByUsername(email);
-            String userPassword=passwordEncoder.encode(password);
-
-            if (passwordEncoder.matches(password, userDetails.getPassword())) {
-
-                return ResponseEntity.status(HttpStatus.OK).body("Login successful");
-            }
-            else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
-            }
-        } catch (UsernameNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-    }
-
-
-    @PostMapping("/passwords")
-    public String createPassword(@RequestParam UUID id, String password){
-        return service.generatePassword(id,password);
-    }
-
     @PostMapping("/accept-leave")
     public ResponseEntity<?> acceptLeave(@RequestBody AcceptLeaveEntity acceptLeave) {
         ErrorUtil<String, String> res = service.acceptLeave(acceptLeave);
