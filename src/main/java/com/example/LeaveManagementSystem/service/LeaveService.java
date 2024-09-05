@@ -7,10 +7,12 @@ import com.example.LeaveManagementSystem.entity.EmployeeEntity;
 import com.example.LeaveManagementSystem.entity.LeaveEntity;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
 import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
+import com.example.LeaveManagementSystem.exceptions.UserNotFoundException;
 import com.example.LeaveManagementSystem.response.ApiResponse;
 import com.example.LeaveManagementSystem.utils.ErrorUtil;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.UUID;
 
@@ -43,6 +45,4 @@ public interface LeaveService {
     ErrorUtil<String, String> acceptLeave(AcceptLeaveEntity entity);
 
     ErrorUtil<String, String> rejectLeave(RejectLeaveEntity entity);
-
-    public String generatePassword(UUID id,String password);
 }

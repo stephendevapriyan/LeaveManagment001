@@ -7,6 +7,7 @@ import com.example.LeaveManagementSystem.entity.EmployeeEntity;
 import com.example.LeaveManagementSystem.entity.LeaveEntity;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
 import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
+import com.example.LeaveManagementSystem.exceptions.UserNotFoundException;
 import com.example.LeaveManagementSystem.response.ApiResponse;
 import com.example.LeaveManagementSystem.serviceImpl.CustomUserDetailServiceImpl;
 import com.example.LeaveManagementSystem.service.LeaveService;
@@ -54,32 +55,6 @@ public class LeaveController {
         ApiResponse<LeaveResponseDTO> response = service.applyLeave(entity);
         return new ResponseEntity<>(response, HttpStatus.valueOf(response.getStatus()));
 
-    }
-
-
-    @GetMapping("/login")
-    public ResponseEntity<String> login(@RequestParam String email, @RequestParam String password) {
-        try {
-
-            UserDetails userDetails = userDetailService.loadUserByUsername(email);
-            String userPassword=passwordEncoder.encode(password);
-
-            if (passwordEncoder.matches(password, userDetails.getPassword())) {
-
-                return ResponseEntity.status(HttpStatus.OK).body("Login successful");
-            }
-            else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
-            }
-        } catch (UsernameNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-    }
-
-
-    @PostMapping("/passwords")
-    public String createPassword(@RequestParam UUID id, String password){
-        return service.generatePassword(id,password);
     }
 
     @PostMapping("/accept-leave")
