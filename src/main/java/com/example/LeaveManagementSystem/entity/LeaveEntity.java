@@ -13,7 +13,7 @@ import java.util.UUID;
 import org.springframework.format.annotation.DateTimeFormat;
 
 @Entity
-@Table(name = "leave")
+@Table(name = "leave_request")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -47,7 +47,7 @@ public class LeaveEntity {
     @Column(nullable = false)
     private String leaveReason;
 
-    @Column(nullable = false)
+    @Column
     private boolean isDelete;
 
     @OneToMany
@@ -58,6 +58,7 @@ public class LeaveEntity {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime deletedAt;
+    @Column(nullable = false)
     private  String assigningEmail;
 
 

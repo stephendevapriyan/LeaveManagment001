@@ -9,6 +9,7 @@ import com.example.LeaveManagementSystem.entity.LeaveStatus;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
 import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
 import com.example.LeaveManagementSystem.exceptions.UserNotFoundException;
+import com.example.LeaveManagementSystem.exceptions.ValidationException;
 import com.example.LeaveManagementSystem.repository.AcceptLeaveEntityRepo;
 import com.example.LeaveManagementSystem.repository.EmployeeRepo;
 import com.example.LeaveManagementSystem.repository.LeaveRepo;
@@ -70,31 +71,20 @@ public class LeaveServiceImpl implements LeaveService {
     // save organization
     @Override
     public ApiResponse<OrganizationEntity> saveOrganization(OrganizationEntity oentity) {
+        validateOrganization(oentity);
         log.info("save organization method started");
         try {
-            if (organizationEmailExists(oentity.getEmail()) && checkLocation(oentity.getLocation())) {
-                log.warn("already registered company with give email and location");
-                return ApiResponse.<OrganizationEntity>builder()
-                        .message("Company is already registered for the given email and location")
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .data(null)
-                        .build();
+            if (organizationEmailExists(oentity.getEmail()) || checkLocation(oentity.getLocation())) {
+                log.warn("already registered company with give email or location");
+               throw new ValidationException("Company is already registered company with give email or location");
             }
             if (!emailValidation.isEmailValid(oentity.getEmail())) {
                 log.warn("invalid email id ");
-                return ApiResponse.<OrganizationEntity>builder()
-                        .message("invalid email id please check")
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .data(null)
-                        .build();
+                throw new ValidationException("Invalid Email Id");
             }
             if (!mobileNoValidation.isNumberValid(oentity.getContactNumber())) {
                 log.warn("invalid mobile no");
-                return ApiResponse.<OrganizationEntity>builder()
-                        .message("invalid mobile no please check")
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .data(null)
-                        .build();
+               throw new ValidationException("Invalid mobile number");
             }
 
             OrganizationEntity savedEntity = orepo.save(oentity);
@@ -104,15 +94,31 @@ public class LeaveServiceImpl implements LeaveService {
                     .status(HttpStatus.OK.value())
                     .data(savedEntity)
                     .build();
-        } catch (Exception e) {
-            log.error("invalid input please check" + e.getMessage());
-            return ApiResponse.<OrganizationEntity>builder()
-                    .message("invalid input please check" + e.getMessage())
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .data(null)
-                    .build();
-        } finally {
+        }
+        catch (Exception e) {
+            log.error("Unexpected error occurred: " + e.getMessage());
+            throw new RuntimeException("Unexpected error occurred: " + e.getMessage());
+        }
+        finally {
             log.info("save organization method completed");
+        }
+    }
+
+    public void validateOrganization(OrganizationEntity organization){
+        if(organization.getName()==null || organization.getName().isBlank()){
+            throw new ValidationException("Name is Mandatory");
+        }
+        if(organization.getAddress()==null || organization.getAddress().isBlank()){
+            throw new ValidationException("Address is Mandatory");
+        }
+        if(organization.getLocation()==null || organization.getLocation().isBlank()){
+            throw new ValidationException("Location is Mandatory");
+        }
+        if(organization.getEmail()==null || organization.getEmail().isBlank()){
+            throw new ValidationException("Email Id is Mandatory");
+        }
+        if(organization.getContactNumber()==null || organization.getContactNumber().isBlank()){
+            throw new ValidationException("Contact number is Mandatory");
         }
     }
 
@@ -133,6 +139,7 @@ public class LeaveServiceImpl implements LeaveService {
         }
         return false;
     }
+
 
     // save employee
     @Override
@@ -273,7 +280,7 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-            if (employeeEntity.getLeaveCount() < noOfDays) {
+            if (employeeEntity.getAvailableLeaves() < noOfDays) {
                 return ApiResponse.<LeaveResponseDTO>builder()
                         .status(HttpStatus.BAD_REQUEST.value())
                         .message("Insufficient leave balance")
@@ -289,9 +296,22 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-            // Save the leave entity
+            if(employeeEntity.isDelete()){
+                return ApiResponse.<LeaveResponseDTO>builder()
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .message("Employee is already deleted and not eligible to apply leave")
+                        .data(null)
+                        .build();
+            }
+
+
+            int leaveBalance=employeeEntity.getAvailableLeaves()-noOfDays;
+            employeeEntity.setAvailableLeaves(leaveBalance);
+            // Save the leave
             LeaveEntity saved = leaverepo.save(entity);
             log.info("Successfully applied leave");
+
+
             Optional<EmployeeEntity> byId = erepository.findById(saved.getEmployee().getId());
 
             String employeeEmail = byId.get().getEmail();
@@ -355,7 +375,7 @@ public class LeaveServiceImpl implements LeaveService {
             // Return a successful response
             return ApiResponse.<LeaveResponseDTO>builder()
                     .status(HttpStatus.OK.value())
-                    .message("Successfully applied leave")
+                    .message("Successfully applied leave and your leave balance is : "+leaveBalance)
                     .data(dto)
                     .build();
         } catch (IllegalArgumentException e) {
@@ -423,7 +443,7 @@ public class LeaveServiceImpl implements LeaveService {
             // Mark the organization entity as deleted and update the deletion timestamp
             organizationEntity.setDelete(true);
             organizationEntity.setDeletedAt(LocalDateTime.now());
-
+            organizationEntity.setActive(false);
             // Save the changes to the repository
             orepo.save(organizationEntity);
 
@@ -491,6 +511,7 @@ public class LeaveServiceImpl implements LeaveService {
             // Mark the employee entity as deleted and update the deletion timestamp
             employeeEntity.setDelete(true);
             employeeEntity.setDeletedAt(LocalDateTime.now());
+            employeeEntity.setActive(false);
 
             // Save the changes to the repository
             erepository.save(employeeEntity);

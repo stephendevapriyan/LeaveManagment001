@@ -5,6 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.UUID;
@@ -48,7 +51,7 @@ public class EmployeeEntity {
     private OrganizationEntity organization;
 
     @Column(nullable = false)
-    private boolean isActive = true;
+    private boolean isActive;
 
     @Column(nullable = false)
     private boolean isDelete;
@@ -57,11 +60,17 @@ public class EmployeeEntity {
     private Set<WorkingHours> hours;
 
     @Column
+    @CreationTimestamp
     private LocalDateTime createdAt;
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
+    @Column
     private LocalDateTime deletedAt;
     private Integer leaveCount;
     private String password;
     private String encryptedPassword;
-    private  Integer employeeSalary;
+    private  Long employeeSalary;
+    private Integer availableLeaves;
+    private Date dob;
+
 }
