@@ -31,6 +31,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
 import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import org.springframework.stereotype.Service;
@@ -250,6 +251,13 @@ public class LeaveServiceImpl implements LeaveService {
         employeeEntity.setEncryptedPassword(encrypting);
         erepository.save(employeeEntity);
         return "password generated successfully";
+    }
+
+    @Override
+    public boolean hasUserSetPassword(String email) throws UsernameNotFoundException {
+        Optional<EmployeeEntity> employee = erepository.findByEmail(email);
+        if (employee.isEmpty()) throw new UsernameNotFoundException("user not found");
+        return employee.get().getPassword() != null && !employee.get().getPassword().isBlank();
     }
 
     // apply leave

@@ -7,6 +7,7 @@ import com.example.LeaveManagementSystem.entity.EmployeeEntity;
 import com.example.LeaveManagementSystem.entity.LeaveEntity;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
 import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
+import com.example.LeaveManagementSystem.exceptions.UserNotFoundException;
 import com.example.LeaveManagementSystem.response.ApiResponse;
 import com.example.LeaveManagementSystem.serviceImpl.CustomUserDetailServiceImpl;
 import com.example.LeaveManagementSystem.service.LeaveService;
@@ -60,6 +61,9 @@ public class LeaveController {
     @GetMapping("/login")
     public ResponseEntity<String> login(@RequestParam String email, @RequestParam String password) {
         try {
+            if (!service.hasUserSetPassword(email)) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("user has not set the password");
+            }
 
             UserDetails userDetails = userDetailService.loadUserByUsername(email);
             String userPassword=passwordEncoder.encode(password);

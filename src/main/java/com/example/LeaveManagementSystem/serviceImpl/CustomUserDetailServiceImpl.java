@@ -17,11 +17,9 @@ public class CustomUserDetailServiceImpl implements UserDetailsService {
     @Autowired
     private EmployeeRepo employeeRepo;
 
-
-
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        Optional<EmployeeEntity> employee =employeeRepo.findByEmail(email);
+        Optional<EmployeeEntity> employee = employeeRepo.findByEmail(email);
         if(employee.isPresent()){
             var employeeData= employee.get();
             return User.builder()
