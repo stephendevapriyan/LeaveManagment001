@@ -6,26 +6,61 @@ import com.example.LeaveManagementSystem.service.ApraisalServiceInter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 @Service
 @Slf4j
 public class AppraisalServiceImpl implements ApraisalServiceInter {
-
     @Autowired
     private EmployeeRepo employeeRepository;
 
+    @Autowired
+    private JavaMailSender mailSender = createMailSender();
+
+    private JavaMailSender createMailSender() {
+        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+        mailSender.setHost("smtp.gmail.com");
+        mailSender.setPort(587);
+        mailSender.setUsername("devapriyanstephen24@gmail.com");
+        mailSender.setPassword("gwsphcbdsbjgolll");
+
+        Properties props = mailSender.getJavaMailProperties();
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.debug", "true");
+
+        return mailSender;
+    }
+
+    public void sendAppraisalEmailToEmployee(UUID id) {
+        try {
+            Optional<EmployeeEntity> optionalEmployee = employeeRepository.findById(id);
+            if (optionalEmployee.isPresent()) {
+                EmployeeEntity employee = optionalEmployee.get();
+                if (shouldSendAppraisal(employee)) {
+                    sendAppraisalEmail(employee);
+                } else {
+                    throw new RuntimeException("Employee is not eligible for appraisal.");
+                }
+            } else {
+                log.warn("Employee with ID {} not found.", id);
+            }
+        } catch (Exception e) {
+            log.error("Error sending appraisal email: {}", e.getMessage());
+            throw e;  // Rethrow the exception after logging
+        }
+    }
+
     public void sendAppraisalEmailsToAll() {
         List<EmployeeEntity> employees = employeeRepository.findAll();
-
         for (EmployeeEntity employee : employees) {
             try {
                 if (shouldSendAppraisal(employee)) {
@@ -43,16 +78,13 @@ public class AppraisalServiceImpl implements ApraisalServiceInter {
             return false;
         }
 
-        // Assuming getHireDate() returns Date
         Date hireDateDate = employee.getHireDate();
         LocalDate hireDate = hireDateDate.toInstant()
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate();
         LocalDate currentDate = LocalDate.now();
-
-        // Calculate the number of years since the employee was hired
         long yearsWorked = ChronoUnit.YEARS.between(hireDate, currentDate);
-        log.info("Employee ID {} has worked for {} years", employee.getId(), yearsWorked);
+
         return yearsWorked >= 1;
     }
 
@@ -62,18 +94,6 @@ public class AppraisalServiceImpl implements ApraisalServiceInter {
             double newSalary = calculateNewSalary(employee.getEmployeeSalary(), appraisalPercentage);
             String effectiveDate = LocalDate.now().toString();
             log.info("Calculated new salary for employee ID {}: {}", employee.getId(), newSalary);
-
-            JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
-            mailSender.setHost("smtp.gmail.com");
-            mailSender.setPort(587);
-            mailSender.setUsername("devapriyanstephen24@gmail.com");
-            mailSender.setPassword("gwsphcbdsbjgolll");
-
-            Properties props = mailSender.getJavaMailProperties();
-            props.put("mail.transport.protocol", "smtp");
-            props.put("mail.smtp.auth", "true");
-            props.put("mail.smtp.starttls.enable", "true"); // Ensure STARTTLS is enabled
-            props.put("mail.debug", "true");
 
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom("devapriyanstephen24@gmail.com");
@@ -90,7 +110,6 @@ public class AppraisalServiceImpl implements ApraisalServiceInter {
     }
 
     private double calculateNewSalary(double currentSalary, double appraisalPercentage) {
-        // Calculate new salary based on current salary and appraisal percentage
         return currentSalary + (currentSalary * appraisalPercentage / 100);
     }
 
@@ -116,4 +135,5 @@ public class AppraisalServiceImpl implements ApraisalServiceInter {
                 effectiveDate
         );
     }
+
 }

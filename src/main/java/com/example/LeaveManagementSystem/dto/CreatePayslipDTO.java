@@ -8,7 +8,9 @@ public record CreatePayslipDTO(
         LocalDate payPeriodStart,
         LocalDate payPeriodEnd,
         LocalDate issuedDate,
+
         byte[] file,
         String fileType,
         String fileName) {
+
 }

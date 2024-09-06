@@ -51,7 +51,7 @@ public class LeaveEntity {
     private boolean isDelete;
 
     @OneToMany
-    private List<AcceptLeaveEntity> acceptedLeaves;
+    private List<AcceptLeave> acceptedLeaves;
 
     @Column
     private LocalDateTime approvedDate;

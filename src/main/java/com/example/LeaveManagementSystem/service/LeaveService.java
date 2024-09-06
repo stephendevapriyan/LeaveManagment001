@@ -1,12 +1,8 @@
 package com.example.LeaveManagementSystem.service;
 
-import com.example.LeaveManagementSystem.entity.AcceptLeaveEntity;
 import com.example.LeaveManagementSystem.dto.EmployeeResponseDTO;
 import com.example.LeaveManagementSystem.dto.LeaveResponseDTO;
-import com.example.LeaveManagementSystem.entity.EmployeeEntity;
-import com.example.LeaveManagementSystem.entity.LeaveEntity;
-import com.example.LeaveManagementSystem.entity.OrganizationEntity;
-import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
+import com.example.LeaveManagementSystem.entity.*;
 import com.example.LeaveManagementSystem.response.ApiResponse;
 import com.example.LeaveManagementSystem.utils.ErrorUtil;
 
@@ -40,7 +36,7 @@ public interface LeaveService {
 
     boolean hasEnoughLeaves(UUID id, int requiredDays);
 
-    ErrorUtil<String, String> acceptLeave(AcceptLeaveEntity entity);
+    ErrorUtil<String, String> acceptLeave(AcceptLeave entity);
 
     ErrorUtil<String, String> rejectLeave(RejectLeaveEntity entity);
 

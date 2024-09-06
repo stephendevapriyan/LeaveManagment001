@@ -23,7 +23,7 @@ import lombok.Data;
 @Data
 @Builder
 @AllArgsConstructor
-public class AcceptLeaveEntity {
+public class AcceptLeave {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;

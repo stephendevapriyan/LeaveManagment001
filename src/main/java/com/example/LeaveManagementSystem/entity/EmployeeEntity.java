@@ -64,4 +64,6 @@ public class EmployeeEntity {
     private String password;
     private String encryptedPassword;
     private  Integer employeeSalary;
+
+
 }

@@ -2,12 +2,7 @@ package com.example.LeaveManagementSystem.serviceImpl;
 
 import com.example.LeaveManagementSystem.dto.EmployeeResponseDTO;
 import com.example.LeaveManagementSystem.dto.LeaveResponseDTO;
-import com.example.LeaveManagementSystem.entity.AcceptLeaveEntity;
-import com.example.LeaveManagementSystem.entity.EmployeeEntity;
-import com.example.LeaveManagementSystem.entity.LeaveEntity;
-import com.example.LeaveManagementSystem.entity.LeaveStatus;
-import com.example.LeaveManagementSystem.entity.OrganizationEntity;
-import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
+import com.example.LeaveManagementSystem.entity.*;
 import com.example.LeaveManagementSystem.exceptions.UserNotFoundException;
 import com.example.LeaveManagementSystem.repository.AcceptLeaveEntityRepo;
 import com.example.LeaveManagementSystem.repository.EmployeeRepo;
@@ -17,7 +12,6 @@ import com.example.LeaveManagementSystem.repository.RejectLeaveEntityRepo;
 import com.example.LeaveManagementSystem.response.ApiResponse;
 import com.example.LeaveManagementSystem.service.LeaveService;
 import com.example.LeaveManagementSystem.utils.ErrorUtil;
-
 import com.example.LeaveManagementSystem.validation.EmailValidation;
 import com.example.LeaveManagementSystem.validation.MobileNoValidation;
 import lombok.SneakyThrows;
@@ -37,10 +31,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -289,9 +280,11 @@ public class LeaveServiceImpl implements LeaveService {
                         .data(null)
                         .build();
             }
-            // Save the leave entity
+
+
             LeaveEntity saved = leaverepo.save(entity);
             log.info("Successfully applied leave");
+
             Optional<EmployeeEntity> byId = erepository.findById(saved.getEmployee().getId());
 
             String employeeEmail = byId.get().getEmail();
@@ -616,7 +609,7 @@ public class LeaveServiceImpl implements LeaveService {
         return true;
     }
 
-    public ErrorUtil<String, String> acceptLeave(AcceptLeaveEntity entity) {
+    public ErrorUtil<String, String> acceptLeave(AcceptLeave entity) {
         if (!isEmployeeExists(entity.getReviewedBy().getId())) {
             return new ErrorUtil<>(false, "Not a valid reviewer", null);
         }
@@ -639,7 +632,31 @@ public class LeaveServiceImpl implements LeaveService {
         } else {
             entity.setStatus(LeaveStatus.REAPPROVED);
         }
-        acceptLeaveEntityRepo.save(entity);
+
+        EmployeeEntity reviewer = erepository.findById(entity.getReviewedBy().getId()).get();
+        String role = reviewer.getRole();
+        System.out.println(entity.getReviewedBy());
+        System.out.println(role+"stephen");
+        ArrayList<String> restrictedRoles = new ArrayList<>();
+        restrictedRoles.add("HR");
+        restrictedRoles.add("DEVELOPER");
+        restrictedRoles.add("DELIVERY_HEAD");
+        restrictedRoles.add("SOFTWARE_TESTING_ENGINEER");
+        restrictedRoles.add("BUSINESS_ANALYST");
+        restrictedRoles.add("TECHNICAL_ARCHITECTURE");
+
+        if (restrictedRoles.contains(role)){
+
+            throw new IllegalStateException("Cannot Accept leave with role"+role);
+        }
+       if (role.contains("PROJECT_MANAGER")){
+
+           acceptLeaveEntityRepo.save(entity);
+           new ErrorUtil<>(true, null, "leave accepted succesfully");
+       }
+
+
+
 
         EmployeeEntity employee = leave.get().getEmployee();
         employee.setLeaveCount(employee.getLeaveCount() - requiredDays);

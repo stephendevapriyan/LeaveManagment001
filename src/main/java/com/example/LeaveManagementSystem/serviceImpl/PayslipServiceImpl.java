@@ -7,6 +7,7 @@ import com.example.LeaveManagementSystem.entity.PayslipEntity;
 
 import com.example.LeaveManagementSystem.service.LeaveService;
 import com.example.LeaveManagementSystem.service.PayslipService;
+import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.stereotype.Service;
 
 import com.example.LeaveManagementSystem.repository.PayslipRep;
@@ -20,6 +21,8 @@ import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 import org.xhtmlrenderer.pdf.ITextRenderer;
 
 import java.io.ByteArrayOutputStream;
+
+import static com.lowagie.text.Utilities.toByteArray;
 
 @Service
 @Slf4j
@@ -37,12 +40,13 @@ public class PayslipServiceImpl implements PayslipService {
         if (!employee) {
             return new ErrorUtil<>(false, "employee with UUID is not found", null);
         }
+        byte[] filePart = dto.file(); // You need to have a method to retrieve the file part
 
         var emp = EmployeeEntity.builder()
                 .id(dto.employeeId()).build();
 
         var payslip = PayslipEntity.builder()
-                .file(dto.file())
+                .file(filePart)
                 .fileName(dto.fileName())
                 .fileType(dto.fileType())
                 .employeeEntity(emp)

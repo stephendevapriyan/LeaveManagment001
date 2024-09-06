@@ -1,5 +1,7 @@
 package com.example.LeaveManagementSystem.controller;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.UUID;
@@ -43,6 +45,14 @@ public class PayslipController {
             @RequestPart("file_type") String fileType,
             @RequestPart("file_name") String fileName,
             @RequestPart("employee_id") String employeeId) throws Exception {
+        if (!"pdf".equalsIgnoreCase(fileType)) {
+            return new ApiResponse<String>("Invalid file type. Only PDF files are allowed.", 400, null);
+        }
+
+        if (!isPdfFile(file)) {
+            return new ApiResponse<String>("Uploaded file is not a PDF.", 400, null);
+        }
+
 
         try {
             LocalDate payPeriodStartDate = utils.stringToLocalDate(payPeriodStart);
@@ -69,6 +79,16 @@ public class PayslipController {
         }
     }
 
+    private boolean isPdfFile(MultipartFile file) {
+        try (InputStream inputStream = file.getInputStream()) {
+            byte[] header = new byte[5];
+            inputStream.read(header);
+            String fileSignature = new String(header);
+            return fileSignature.startsWith("%PDF-");
+        } catch (IOException e) {
+            return false;
+        }
+    }
     @PostMapping("/create-pdf")
     public byte[] genereatePDF(@RequestBody CreatePayslipPDFDTO dto) {
         var res = payslipService.generatePDF(dto);
@@ -83,4 +103,6 @@ public class PayslipController {
         headers.setContentDisposition(contentDisposition);
         return res.getData().toByteArray();
     }
+
+
 }

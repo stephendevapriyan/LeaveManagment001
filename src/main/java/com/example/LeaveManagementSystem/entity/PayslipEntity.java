@@ -39,8 +39,8 @@ public class PayslipEntity {
     @Column(nullable = false)
     private LocalDate issuedDate;
 
-    @Lob
-    @Column(nullable = false)
+
+    @Column(name = "file", columnDefinition = "BYTEA")
     private byte[] file;
 
     @Column(nullable = false)
