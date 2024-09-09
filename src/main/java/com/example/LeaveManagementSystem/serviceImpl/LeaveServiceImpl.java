@@ -72,11 +72,8 @@ public class LeaveServiceImpl implements LeaveService {
         try {
             Optional<OrganizationEntity> orgOpt = orepo.findByEmail(oentity.getEmail());
             if (orgOpt.isPresent() && orgOpt.get().isDelete() && !isUpdate) {
-                return ApiResponse.<OrganizationEntity>builder()
-                        .message("Organization has been deleted earlier please update it")
-                        .status(HttpStatus.OK.value())
-                        .data(null)
-                        .build();
+                log.warn("Organization has been deleted earlier please update it");
+                throw new ValidationException("Organization has been deleted earlier please update it");
             }
             if (!isUpdate && (organizationEmailExists(oentity.getEmail()) || checkLocation(oentity.getLocation()))) {
                 log.warn("already registered company with give email or location");
@@ -192,6 +189,10 @@ public class LeaveServiceImpl implements LeaveService {
             if (!isUpdate && isEmailExists(entity.getEmail())) {
                 log.warn("Email id already exists");
                throw new ValidationException("Employee Email id is already exists");
+            }
+            if (isUpdate && !isEmailExists(entity.getEmail())) {
+                log.warn("Email id does not exists");
+                throw new ValidationException("Email id does not exists");
             }
             if (entity.getOrganization() == null || !isOrganizationExists(entity.getOrganization().getId())) {
                 log.warn("Organization Is Not Found");
