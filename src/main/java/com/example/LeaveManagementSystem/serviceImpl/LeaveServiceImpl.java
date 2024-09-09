@@ -8,7 +8,6 @@ import com.example.LeaveManagementSystem.entity.LeaveEntity;
 import com.example.LeaveManagementSystem.entity.LeaveStatus;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
 import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
-import com.example.LeaveManagementSystem.exceptions.IdNotFoundException;
 import com.example.LeaveManagementSystem.exceptions.UserNotFoundException;
 import com.example.LeaveManagementSystem.exceptions.ValidationException;
 import com.example.LeaveManagementSystem.repository.AcceptLeaveEntityRepo;
@@ -118,7 +117,6 @@ public class LeaveServiceImpl implements LeaveService {
                 status = "updated";
             } else {
                 status = "saved";
-                oentity.setActive(true);
                 savedEntity = orepo.save(oentity);
             }
 
@@ -198,8 +196,8 @@ public class LeaveServiceImpl implements LeaveService {
                throw new ValidationException("Employee Email id is already exists");
             }
             if (entity.getOrganization() == null || !isOrganizationExists(entity.getOrganization().getId())) {
-                log.warn("Organization Id not found");
-                throw new IdNotFoundException("Organization Id not found");
+                log.warn("Invalid organization");
+              throw new ValidationException("Invalid organization");
             }
             if (!emailValidation.isEmailValid(entity.getEmail())) {
                 log.warn("invalid email id ");
@@ -230,16 +228,12 @@ public class LeaveServiceImpl implements LeaveService {
                 savedEntity.setRole(inputRole);
                 savedEntity.setAvailableLeaves(entity.getLeaveCount());
                 savedEntity.setActive(entity.isActive());
-                savedEntity.setDayShift(entity.isDayShift());
-                savedEntity.setNightShift(entity.isNightShift());
                 status = " updated";
             } else {
                 log.info("creating the user");
                 savedEntity = entity;
                 status = "saved";
             }
-            entity.setAvailableLeaves(entity.getLeaveCount());
-            entity.setActive(true);
             erepository.save(savedEntity);
             log.info("Successfully saved employee");
 
@@ -332,7 +326,7 @@ public class LeaveServiceImpl implements LeaveService {
         log.info("apply leave method started");
         UUID employeeid = entity.getEmployee().getId();
         System.out.println(employeeid);
-       EmployeeEntity employeeEntity = erepository.findById(employeeid).orElseThrow(()-> new IdNotFoundException("Employee Id Not Found"));
+       EmployeeEntity employeeEntity = erepository.findById(employeeid).orElseThrow(()-> new ValidationException("Employee Id not found"));
 
 
         String employeeEmail = employeeEntity.getEmail();
