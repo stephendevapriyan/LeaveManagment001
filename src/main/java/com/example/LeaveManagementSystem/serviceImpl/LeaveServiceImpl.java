@@ -63,6 +63,7 @@ public class LeaveServiceImpl implements LeaveService {
     @Autowired
     JavaMailSender mailSender;
 
+  
     // save organization
     @Override
     public ApiResponse<OrganizationEntity> saveOrganization(OrganizationEntity oentity, boolean isUpdate) {
@@ -748,16 +749,19 @@ public class LeaveServiceImpl implements LeaveService {
             return new ErrorUtil<>(false, "Employees does not have enough leave", null);
         }
 
-        if (rejectLeaveEntityRepo.findById(entity.getLeaveRequest().getId()).isPresent()) {
-            entity.setStatus(LeaveStatus.APPROVED);
-        } else {
-            entity.setStatus(LeaveStatus.REAPPROVED);
+        Optional<AcceptLeave> existingLeave =acceptLeaveEntityRepo.findByLeaveRequestId(entity.getLeaveRequest().getId());
+        if (existingLeave.isPresent()) {
+            AcceptLeave existing =  existingLeave.get();
+            if (existing.getStatus() == LeaveStatus.APPROVED) {
+                return new ErrorUtil<>(false, "Leave request has already been approved", null);
+            }
+            if (existing.isUpdate()) {
+                return new ErrorUtil<>(false, "Leave request has already been processed", null);
+            }
         }
 
         EmployeeEntity reviewer = erepository.findById(entity.getReviewedBy().getId()).get();
         String role = reviewer.getRole();
-        System.out.println(entity.getReviewedBy());
-        System.out.println(role+"stephen");
         ArrayList<String> restrictedRoles = new ArrayList<>();
         restrictedRoles.add("HR");
         restrictedRoles.add("DEVELOPER");
@@ -770,13 +774,14 @@ public class LeaveServiceImpl implements LeaveService {
 
             throw new IllegalStateException("Cannot Accept leave with role"+role);
         }
+
        if (role.contains("PROJECT_MANAGER")){
-
-           acceptLeaveEntityRepo.save(entity);
+           entity.setStatus(LeaveStatus.APPROVED);
+           entity.setUpdate(true);
+           AcceptLeave save = acceptLeaveEntityRepo.save(entity);
            new ErrorUtil<>(true, null, "leave accepted succesfully");
+
        }
-
-
 
 
         EmployeeEntity employee = leave.get().getEmployee();
@@ -832,7 +837,7 @@ public class LeaveServiceImpl implements LeaveService {
 
         return new ErrorUtil<>(true, null, "leave accepted succesfully");
     }
-
+   
     @Override
     public ErrorUtil<String, String> rejectLeave(RejectLeaveEntity entity) {
         if (!isEmployeeExists(entity.getReviewedBy().getId())) {

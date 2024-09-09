@@ -72,4 +72,5 @@ public class EmployeeEntity {
     private boolean isNightShift;
     private boolean isDayShift;
 
+
 }

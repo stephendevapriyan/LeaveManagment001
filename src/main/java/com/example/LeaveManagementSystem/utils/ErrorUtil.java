@@ -13,4 +13,8 @@ public class ErrorUtil<T, D> {
     public Boolean isOk() {
         return this.ok;
     }
+
+    public T getError() {
+        return this.message;
+    }
 }

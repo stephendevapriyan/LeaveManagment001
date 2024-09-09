@@ -3,6 +3,7 @@ package com.example.LeaveManagementSystem.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -23,6 +24,8 @@ import lombok.Data;
 @Data
 @Builder
 @AllArgsConstructor
+@NoArgsConstructor // Lombok annotation to generate a default constructor
+
 public class AcceptLeave {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -53,4 +56,10 @@ public class AcceptLeave {
 
     @Column
     private boolean isDeleted;
+
+    @Column(name = "is_update", nullable = false) // Corrected column name and added 'nullable' property
+    private boolean isUpdate;
+
+
+
 }

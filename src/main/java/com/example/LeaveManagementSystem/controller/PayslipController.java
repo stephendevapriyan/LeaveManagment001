@@ -6,9 +6,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.UUID;
 
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -73,7 +71,7 @@ public class PayslipController {
                 return new ApiResponse<String>("Invalid input", null, result.getMessage());
             }
 
-            return new ApiResponse<Object>("Everything looks good", 200, null);
+            return new ApiResponse<Object>("payslips generater succesfully", 200, null);
         } catch (DateTimeParseException e) {
             return new ApiResponse<String>("Invalid date time format", 0, e.getMessage());
         }
@@ -89,20 +87,28 @@ public class PayslipController {
             return false;
         }
     }
+
     @PostMapping("/create-pdf")
-    public byte[] genereatePDF(@RequestBody CreatePayslipPDFDTO dto) {
+    public ResponseEntity<byte[]> generatePDF(@RequestBody CreatePayslipPDFDTO dto) {
         var res = payslipService.generatePDF(dto);
+
         if (!res.isOk()) {
-            return null;
+            // Handle error and return a meaningful message
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(("Error: " + res.getError()).getBytes());
         }
+
+        // Set the Content-Disposition header
         ContentDisposition contentDisposition = ContentDisposition.builder("inline")
-                .filename(dto.getName() + "-paylip" + "-" + dto.getPayMonth().toString())
+                .filename(dto.getEmployeeId() + "-payslip-" + dto.getPayMonth().toString() + ".pdf")
                 .build();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentDisposition(contentDisposition);
-        return res.getData().toByteArray();
+
+        // Return the PDF data with OK status
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(res.getData().toByteArray());
     }
-
-
 }
