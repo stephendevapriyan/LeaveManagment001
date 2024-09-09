@@ -8,6 +8,7 @@ import com.example.LeaveManagementSystem.entity.LeaveEntity;
 import com.example.LeaveManagementSystem.entity.LeaveStatus;
 import com.example.LeaveManagementSystem.entity.OrganizationEntity;
 import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
+import com.example.LeaveManagementSystem.exceptions.IdNotFoundException;
 import com.example.LeaveManagementSystem.exceptions.UserNotFoundException;
 import com.example.LeaveManagementSystem.exceptions.ValidationException;
 import com.example.LeaveManagementSystem.repository.AcceptLeaveEntityRepo;
@@ -117,6 +118,7 @@ public class LeaveServiceImpl implements LeaveService {
                 status = "updated";
             } else {
                 status = "saved";
+                oentity.setActive(true);
                 savedEntity = orepo.save(oentity);
             }
 
@@ -196,8 +198,8 @@ public class LeaveServiceImpl implements LeaveService {
                throw new ValidationException("Employee Email id is already exists");
             }
             if (entity.getOrganization() == null || !isOrganizationExists(entity.getOrganization().getId())) {
-                log.warn("Invalid organization");
-              throw new ValidationException("Invalid organization");
+                log.warn("Organization Is Not Found");
+              throw new IdNotFoundException("Organization Is Not Found");
             }
             if (!emailValidation.isEmailValid(entity.getEmail())) {
                 log.warn("invalid email id ");
@@ -234,6 +236,8 @@ public class LeaveServiceImpl implements LeaveService {
                 savedEntity = entity;
                 status = "saved";
             }
+            entity.setActive(true);
+            entity.setAvailableLeaves(entity.getLeaveCount());
             erepository.save(savedEntity);
             log.info("Successfully saved employee");
 
@@ -259,6 +263,9 @@ public class LeaveServiceImpl implements LeaveService {
                     .build();
         }
         catch(ValidationException e){
+            throw e;
+        }
+        catch(IdNotFoundException e){
             throw e;
         }
         catch (Exception e) {
@@ -326,7 +333,7 @@ public class LeaveServiceImpl implements LeaveService {
         log.info("apply leave method started");
         UUID employeeid = entity.getEmployee().getId();
         System.out.println(employeeid);
-       EmployeeEntity employeeEntity = erepository.findById(employeeid).orElseThrow(()-> new ValidationException("Employee Id not found"));
+       EmployeeEntity employeeEntity = erepository.findById(employeeid).orElseThrow(()-> new IdNotFoundException("Employee Id not found"));
 
 
         String employeeEmail = employeeEntity.getEmail();
@@ -354,7 +361,7 @@ public class LeaveServiceImpl implements LeaveService {
                 log.warn("Employee is already deleted and not eligible to apply leave");
                 throw new ValidationException("Employee is already deleted and not eligible to apply leave");
             }
-            if (entity.getId() != null && leaverepo.existsById(entity.getId())) {
+            if (entity.getId() != null && leaverepo.findById(entity.getId()).isPresent()) {
                 // It's an update
                 LeaveEntity existingLeave = leaverepo.findById(entity.getId()).get();
                 Period existingdifference = Period.between(existingLeave.getStartDate(), existingLeave.getEndDate());
@@ -389,6 +396,7 @@ public class LeaveServiceImpl implements LeaveService {
             int leaveBalance=employeeEntity.getAvailableLeaves()-noOfDays;
             employeeEntity.setAvailableLeaves(leaveBalance);
             entity.setStatus("Pending");
+            entity.setRequestDate(LocalDateTime.now());
             LeaveEntity saved = leaverepo.save(entity);
             log.info("Successfully applied leave");
 
@@ -435,6 +443,9 @@ public class LeaveServiceImpl implements LeaveService {
         catch (ValidationException e) {
             log.error("Validation failed: {}", e.getMessage());
            throw e;
+        }
+        catch(IdNotFoundException e){
+            throw e;
         }
         catch (Exception e) {
             log.error("Exception occurred: ", e);
