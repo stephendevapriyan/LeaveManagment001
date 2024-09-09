@@ -228,6 +228,7 @@ public class LeaveServiceImpl implements LeaveService {
                 savedEntity.setRole(inputRole);
                 savedEntity.setAvailableLeaves(entity.getLeaveCount());
                 savedEntity.setActive(entity.isActive());
+                savedEntity.setEmployeeSalary(entity.getEmployeeSalary());
                 status = " updated";
             } else {
                 log.info("creating the user");
