@@ -255,7 +255,7 @@ public class LeaveServiceImpl implements LeaveService {
 
             return ApiResponse.<EmployeeResponseDTO>builder()
                     .status(HttpStatus.OK.value())
-                    .message("Successfully saved Employee Details")
+                    .message(String.format("Successfully %s Employee Details", status))
                     .data(dto)
                     .build();
         }
