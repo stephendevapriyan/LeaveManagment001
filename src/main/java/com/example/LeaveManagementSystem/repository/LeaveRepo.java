@@ -13,7 +13,7 @@ import java.util.UUID;
 @Repository
 public interface LeaveRepo extends JpaRepository<LeaveEntity, UUID> {
 
-    @Query(value = "SELECT * FROM leave " +
+    @Query(value = "SELECT * FROM leave_request " +
             "WHERE employee_id = :employeeId " +
             "AND start_date <= :endDate " +
             "AND end_date >= :startDate", nativeQuery = true)

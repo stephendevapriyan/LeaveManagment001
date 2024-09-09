@@ -10,10 +10,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.format.annotation.DateTimeFormat;
 
 @Entity
-@Table(name = "leave")
+@Table(name = "leave_request")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -47,17 +49,19 @@ public class LeaveEntity {
     @Column(nullable = false)
     private String leaveReason;
 
-    @Column(nullable = false)
+    @Column
     private boolean isDelete;
-
-    @OneToMany
-    private List<AcceptLeave> acceptedLeaves;
 
     @Column
     private LocalDateTime approvedDate;
+    @Column
+    @CreationTimestamp
     private LocalDateTime createdAt;
+    @UpdateTimestamp
     private LocalDateTime updatedAt;
+    @Column
     private LocalDateTime deletedAt;
+    @Column(nullable = false)
     private  String assigningEmail;
 
 

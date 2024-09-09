@@ -3,6 +3,12 @@ package com.example.LeaveManagementSystem.controller;
 import com.example.LeaveManagementSystem.dto.EmployeeResponseDTO;
 import com.example.LeaveManagementSystem.dto.LeaveResponseDTO;
 import com.example.LeaveManagementSystem.entity.*;
+
+import com.example.LeaveManagementSystem.entity.EmployeeEntity;
+import com.example.LeaveManagementSystem.entity.LeaveEntity;
+import com.example.LeaveManagementSystem.entity.OrganizationEntity;
+import com.example.LeaveManagementSystem.entity.RejectLeaveEntity;
+import com.example.LeaveManagementSystem.exceptions.UserNotFoundException;
 import com.example.LeaveManagementSystem.response.ApiResponse;
 import com.example.LeaveManagementSystem.serviceImpl.CustomUserDetailServiceImpl;
 import com.example.LeaveManagementSystem.service.LeaveService;
@@ -34,14 +40,14 @@ public class LeaveController {
     private PasswordEncoder passwordEncoder;
 
     @PostMapping("/organization")
-    public ResponseEntity<ApiResponse<OrganizationEntity>> addOrganization(@RequestBody OrganizationEntity entity) {
-        ApiResponse<OrganizationEntity> response = service.saveOrganization(entity);
+    public ResponseEntity<ApiResponse<OrganizationEntity>> addOrganization(@RequestBody OrganizationEntity entity, @RequestParam(value = "update", required = false) boolean update) {
+        ApiResponse<OrganizationEntity> response = service.saveOrganization(entity, update);
         return new ResponseEntity<>(response, HttpStatus.valueOf(response.getStatus()));
     }
 
     @PostMapping("/employee")
-    public ResponseEntity<ApiResponse<EmployeeResponseDTO>> addEmployee(@RequestBody EmployeeEntity entity) {
-        ApiResponse<EmployeeResponseDTO> response = service.saveEmployee(entity);
+    public ResponseEntity<ApiResponse<EmployeeResponseDTO>> addEmployee(@RequestBody EmployeeEntity entity, @RequestParam(value = "update", required = false) boolean update) {
+        ApiResponse<EmployeeResponseDTO> response = service.saveEmployee(entity, update);
         return new ResponseEntity<>(response, HttpStatus.valueOf(response.getStatus()));
     }
 
@@ -50,32 +56,6 @@ public class LeaveController {
         ApiResponse<LeaveResponseDTO> response = service.applyLeave(entity);
         return new ResponseEntity<>(response, HttpStatus.valueOf(response.getStatus()));
 
-    }
-
-
-    @GetMapping("/login")
-    public ResponseEntity<String> login(@RequestParam String email, @RequestParam String password) {
-        try {
-
-            UserDetails userDetails = userDetailService.loadUserByUsername(email);
-            String userPassword=passwordEncoder.encode(password);
-
-            if (passwordEncoder.matches(password, userDetails.getPassword())) {
-
-                return ResponseEntity.status(HttpStatus.OK).body("Login successful");
-            }
-            else {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
-            }
-        } catch (UsernameNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }
-    }
-
-
-    @PostMapping("/passwords")
-    public String createPassword(@RequestParam UUID id, String password){
-        return service.generatePassword(id,password);
     }
 
     @PostMapping("/accept-leave")
@@ -105,7 +85,6 @@ public class LeaveController {
 
     @DeleteMapping("/deleteorg")
     ResponseEntity<ApiResponse<OrganizationEntity>> deleteOLM(@RequestParam(name = "id") UUID id) {
-
         return service.deleteOrganizationID(id);
     }
 
