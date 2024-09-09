@@ -69,11 +69,19 @@ public class LeaveServiceImpl implements LeaveService {
 
     // save organization
     @Override
-    public ApiResponse<OrganizationEntity> saveOrganization(OrganizationEntity oentity) {
+    public ApiResponse<OrganizationEntity> saveOrganization(OrganizationEntity oentity, boolean isUpdate) {
         validateOrganization(oentity);
         log.info("save organization method started");
         try {
-            if (organizationEmailExists(oentity.getEmail()) || checkLocation(oentity.getLocation())) {
+            Optional<OrganizationEntity> orgOpt = orepo.findByEmail(oentity.getEmail());
+            if (orgOpt.isPresent() && orgOpt.get().isDelete() && !isUpdate) {
+                return ApiResponse.<OrganizationEntity>builder()
+                        .message("Organization has been deleted earlier please update it")
+                        .status(HttpStatus.OK.value())
+                        .data(null)
+                        .build();
+            }
+            if (!isUpdate && (organizationEmailExists(oentity.getEmail()) || checkLocation(oentity.getLocation()))) {
                 log.warn("already registered company with give email or location");
                throw new ValidationException("Company is already registered company with give email or location");
             }
@@ -85,12 +93,36 @@ public class LeaveServiceImpl implements LeaveService {
                 log.warn("invalid mobile no");
                throw new ValidationException("Invalid mobile number");
             }
+            if (isUpdate && orgOpt.isEmpty()) {
+                log.warn("trying to update organization that is not present");
+                throw new ValidationException("No organization found to update");
+            }
 
-            oentity.setActive(true);
-            OrganizationEntity savedEntity = orepo.save(oentity);
-            log.info("successfully saved organization");
+            String status;
+            OrganizationEntity savedEntity;
+            if (isUpdate) {
+                OrganizationEntity org = orgOpt.get();
+                org.setName(oentity.getName());
+                org.setAddress(oentity.getAddress());
+                org.setLocation(oentity.getLocation());
+                org.setEmail(oentity.getEmail());
+                org.setContactNumber(oentity.getContactNumber());
+                org.setUpdatedAt(LocalDateTime.now());
+                org.setDelete(oentity.isDelete());
+                org.setActive(oentity.isActive());
+                if (oentity.isDelete()) {
+                    org.setDeletedAt(LocalDateTime.now());
+                }
+                savedEntity = orepo.save(org);
+                status = "updated";
+            } else {
+                status = "saved";
+                savedEntity = orepo.save(oentity);
+            }
+
+            log.info(String.format("successfully %s organization", status));
             return ApiResponse.<OrganizationEntity>builder()
-                    .message("successfully saved organization")
+                    .message(String.format("successfully %s organization", status))
                     .status(HttpStatus.OK.value())
                     .data(savedEntity)
                     .build();
@@ -146,7 +178,7 @@ public class LeaveServiceImpl implements LeaveService {
 
     // save employee
     @Override
-    public ApiResponse<EmployeeResponseDTO> saveEmployee(EmployeeEntity entity) {
+    public ApiResponse<EmployeeResponseDTO> saveEmployee(EmployeeEntity entity, boolean isUpdate) {
         validateEmployee(entity);
         Set<String> validRoles = Set.of(
                 "HR", "DEVELOPER", "SOFTWARE_TESTING_ENGINEER",
@@ -159,7 +191,7 @@ public class LeaveServiceImpl implements LeaveService {
             if (!validRoles.contains(inputRole)){
                 throw new ValidationException("Invalid Role");
             }
-            if (isEmailExists(entity.getEmail())) {
+            if (!isUpdate && isEmailExists(entity.getEmail())) {
                 log.warn("Email id already exists");
                throw new ValidationException("Employee Email id is already exists");
             }
@@ -176,26 +208,49 @@ public class LeaveServiceImpl implements LeaveService {
                throw new ValidationException("Invalid Mobile number");
             }
 
-            entity.setRole(inputRole);
-            entity.setAvailableLeaves(entity.getLeaveCount());
-            entity.setActive(true);
-            EmployeeEntity savedEntity = erepository.save(entity);
+            EmployeeEntity savedEntity;
+            String status;
+            if (isUpdate) {
+                log.info("updating the user");
+                OrganizationEntity org = orepo.findById(entity.getOrganization().getId()).get();
+                savedEntity = erepository.findByEmail(entity.getEmail()).get();
+                savedEntity.setFirstname(entity.getFirstname());
+                savedEntity.setLastname(entity.getLastname());
+                savedEntity.setEmail(entity.getEmail());
+                savedEntity.setRole(entity.getRole());
+                savedEntity.setPhoneNumber(entity.getPhoneNumber());
+                savedEntity.setHireDate(entity.getHireDate());
+                savedEntity.setJobTitle(entity.getJobTitle());
+                savedEntity.setOrganization(org);
+                savedEntity.setActive(entity.isActive());
+                savedEntity.setCreatedAt(entity.getCreatedAt());
+                savedEntity.setUpdatedAt(entity.getUpdatedAt());
+                savedEntity.setRole(inputRole);
+                savedEntity.setAvailableLeaves(entity.getLeaveCount());
+                savedEntity.setActive(entity.isActive());
+                status = " updated";
+            } else {
+                log.info("creating the user");
+                savedEntity = entity;
+                status = "saved";
+            }
+            erepository.save(savedEntity);
             log.info("Successfully saved employee");
 
             EmployeeResponseDTO dto = new EmployeeResponseDTO();
 
-            dto.setId(entity.getId());
-            dto.setFirstname(entity.getFirstname());
-            dto.setLastname(entity.getLastname());
-            dto.setEmail(entity.getEmail());
-            dto.setRole(entity.getRole());
-            dto.setPhoneNumber(entity.getPhoneNumber());
-            dto.setHireDate(entity.getHireDate());
-            dto.setJobTitle(entity.getJobTitle());
-            dto.setOrganizationId(entity.getOrganization().getId());
-            dto.setActive(entity.isActive());
-            dto.setCreatedAt(entity.getCreatedAt());
-            dto.setUpdatedAt(entity.getUpdatedAt());
+            dto.setId(savedEntity.getId());
+            dto.setFirstname(savedEntity.getFirstname());
+            dto.setLastname(savedEntity.getLastname());
+            dto.setEmail(savedEntity.getEmail());
+            dto.setRole(savedEntity.getRole());
+            dto.setPhoneNumber(savedEntity.getPhoneNumber());
+            dto.setHireDate(savedEntity.getHireDate());
+            dto.setJobTitle(savedEntity.getJobTitle());
+            dto.setOrganizationId(savedEntity.getOrganization().getId());
+            dto.setActive(savedEntity.isActive());
+            dto.setCreatedAt(savedEntity.getCreatedAt());
+            dto.setUpdatedAt(savedEntity.getUpdatedAt());
 
             return ApiResponse.<EmployeeResponseDTO>builder()
                     .status(HttpStatus.OK.value())

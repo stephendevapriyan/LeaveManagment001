@@ -18,13 +18,13 @@ import java.util.UUID;
 
 public interface LeaveService {
 
-    public ApiResponse<OrganizationEntity> saveOrganization(OrganizationEntity oentity);
+    public ApiResponse<OrganizationEntity> saveOrganization(OrganizationEntity oentity, boolean isUpdate);
 
     public boolean organizationEmailExists(String email);
 
     public boolean checkLocation(String location);
 
-    public ApiResponse<EmployeeResponseDTO> saveEmployee(EmployeeEntity entity);
+    public ApiResponse<EmployeeResponseDTO> saveEmployee(EmployeeEntity entity, boolean isUpdate);
 
     public boolean isEmailExists(String email);
 

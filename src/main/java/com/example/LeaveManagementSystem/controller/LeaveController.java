@@ -39,14 +39,14 @@ public class LeaveController {
     private PasswordEncoder passwordEncoder;
 
     @PostMapping("/organization")
-    public ResponseEntity<ApiResponse<OrganizationEntity>> addOrganization(@RequestBody OrganizationEntity entity) {
-        ApiResponse<OrganizationEntity> response = service.saveOrganization(entity);
+    public ResponseEntity<ApiResponse<OrganizationEntity>> addOrganization(@RequestBody OrganizationEntity entity, @RequestParam(value = "update", required = false) boolean update) {
+        ApiResponse<OrganizationEntity> response = service.saveOrganization(entity, update);
         return new ResponseEntity<>(response, HttpStatus.valueOf(response.getStatus()));
     }
 
     @PostMapping("/employee")
-    public ResponseEntity<ApiResponse<EmployeeResponseDTO>> addEmployee(@RequestBody EmployeeEntity entity) {
-        ApiResponse<EmployeeResponseDTO> response = service.saveEmployee(entity);
+    public ResponseEntity<ApiResponse<EmployeeResponseDTO>> addEmployee(@RequestBody EmployeeEntity entity, @RequestParam(value = "update", required = false) boolean update) {
+        ApiResponse<EmployeeResponseDTO> response = service.saveEmployee(entity, update);
         return new ResponseEntity<>(response, HttpStatus.valueOf(response.getStatus()));
     }
 
@@ -84,7 +84,6 @@ public class LeaveController {
 
     @DeleteMapping("/deleteorg")
     ResponseEntity<ApiResponse<OrganizationEntity>> deleteOLM(@RequestParam(name = "id") UUID id) {
-
         return service.deleteOrganizationID(id);
     }
 
