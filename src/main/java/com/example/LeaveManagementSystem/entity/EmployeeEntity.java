@@ -56,9 +56,6 @@ public class EmployeeEntity {
     @Column(nullable = false)
     private boolean isDelete;
 
-    @OneToMany
-    private Set<WorkingHours> hours;
-
     @Column
     @CreationTimestamp
     private LocalDateTime createdAt;
@@ -69,8 +66,10 @@ public class EmployeeEntity {
     private Integer leaveCount;
     private String password;
     private String encryptedPassword;
-    private  Long employeeSalary;
+    private  Double employeeSalary;
     private Integer availableLeaves;
     private Date dob;
+    private boolean isNightShift;
+    private boolean isDayShift;
 
 }

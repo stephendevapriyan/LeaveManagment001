@@ -52,9 +52,6 @@ public class LeaveEntity {
     @Column
     private boolean isDelete;
 
-    @OneToMany
-    private List<AcceptLeaveEntity> acceptedLeaves;
-
     @Column
     private LocalDateTime approvedDate;
     @Column
