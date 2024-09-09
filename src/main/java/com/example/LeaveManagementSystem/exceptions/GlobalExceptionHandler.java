@@ -17,14 +17,14 @@ public class GlobalExceptionHandler {
                         .data(null)
                         .build());
     }
-
-    @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.<Void>builder()
-                        .message( ex.getMessage())
-                        .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                        .data(null)
-                        .build());
-    }
+//
+//    @ExceptionHandler(RuntimeException.class)
+//    public ResponseEntity<ApiResponse<Void>> handleRuntimeException(RuntimeException ex) {
+//        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                .body(ApiResponse.<Void>builder()
+//                        .message("Unexpected error occurred: "+ ex.getMessage())
+//                        .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+//                        .data(null)
+//                        .build());
+//    }
 }

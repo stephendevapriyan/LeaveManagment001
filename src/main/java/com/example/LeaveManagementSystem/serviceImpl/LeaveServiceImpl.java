@@ -21,6 +21,7 @@ import com.example.LeaveManagementSystem.utils.ErrorUtil;
 
 import com.example.LeaveManagementSystem.validation.EmailValidation;
 import com.example.LeaveManagementSystem.validation.MobileNoValidation;
+import jakarta.transaction.Transactional;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,10 +40,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 
 @Slf4j
@@ -88,6 +86,7 @@ public class LeaveServiceImpl implements LeaveService {
                throw new ValidationException("Invalid mobile number");
             }
 
+            oentity.setActive(true);
             OrganizationEntity savedEntity = orepo.save(oentity);
             log.info("successfully saved organization");
             return ApiResponse.<OrganizationEntity>builder()
@@ -95,6 +94,9 @@ public class LeaveServiceImpl implements LeaveService {
                     .status(HttpStatus.OK.value())
                     .data(savedEntity)
                     .build();
+        }
+        catch(ValidationException e){
+            throw e;
         }
         catch (Exception e) {
             log.error("Unexpected error occurred: " + e.getMessage());
@@ -145,41 +147,38 @@ public class LeaveServiceImpl implements LeaveService {
     // save employee
     @Override
     public ApiResponse<EmployeeResponseDTO> saveEmployee(EmployeeEntity entity) {
+        validateEmployee(entity);
+        Set<String> validRoles = Set.of(
+                "HR", "DEVELOPER", "SOFTWARE_TESTING_ENGINEER",
+                "PROJECT_MANAGER", "BUSINESS_ANALYST", "TECHNICAL_ARCHITECTURE"
+        );
+        String inputRole=entity.getRole().trim().toUpperCase().replaceAll("\\s+","_");
+
         log.info("saving employee method started");
         try {
+            if (!validRoles.contains(inputRole)){
+                throw new ValidationException("Invalid Role");
+            }
             if (isEmailExists(entity.getEmail())) {
                 log.warn("Email id already exists");
-                return ApiResponse.<EmployeeResponseDTO>builder()
-                        .message("Email id already exists")
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .data(null)
-                        .build();
+               throw new ValidationException("Employee Email id is already exists");
             }
             if (entity.getOrganization() == null || !isOrganizationExists(entity.getOrganization().getId())) {
                 log.warn("Invalid organization");
-                return ApiResponse.<EmployeeResponseDTO>builder()
-                        .message("Invalid organization")
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .data(null)
-                        .build();
+              throw new ValidationException("Invalid organization");
             }
             if (!emailValidation.isEmailValid(entity.getEmail())) {
                 log.warn("invalid email id ");
-                return ApiResponse.<EmployeeResponseDTO>builder()
-                        .message("invalid email id please check")
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .data(null)
-                        .build();
+               throw new ValidationException("Invalid Email Id ");
             }
             if (!mobileNoValidation.isNumberValid(entity.getPhoneNumber())) {
                 log.warn("invalid mobile no ");
-                return ApiResponse.<EmployeeResponseDTO>builder()
-                        .message("invalid mobile no")
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .data(null)
-                        .build();
+               throw new ValidationException("Invalid Mobile number");
             }
 
+            entity.setRole(inputRole);
+            entity.setAvailableLeaves(entity.getLeaveCount());
+            entity.setActive(true);
             EmployeeEntity savedEntity = erepository.save(entity);
             log.info("Successfully saved employee");
 
@@ -200,18 +199,18 @@ public class LeaveServiceImpl implements LeaveService {
 
             return ApiResponse.<EmployeeResponseDTO>builder()
                     .status(HttpStatus.OK.value())
-                    .message("Successfully saved")
+                    .message("Successfully saved Employee Details")
                     .data(dto)
                     .build();
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            log.error("invalid input please check");
-            return ApiResponse.<EmployeeResponseDTO>builder()
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .message("invalid input please check")
-                    .data(null)
-                    .build();
-        } finally {
+        }
+        catch(ValidationException e){
+            throw e;
+        }
+        catch (Exception e) {
+            log.error("Unexpected error occurred: " + e.getMessage());
+            throw new RuntimeException("Unexpected error occurred: " + e.getMessage());
+        }
+        finally {
             log.info("save employee method completed");
         }
     }
@@ -234,80 +233,116 @@ public class LeaveServiceImpl implements LeaveService {
         return false;
     }
 
-    // apply leave
+    public void validateEmployee(EmployeeEntity employee) {
+        if (employee.getFirstname() == null || employee.getFirstname().isBlank()) {
+            throw new ValidationException("First name is mandatory.");
+        }
+        if (employee.getLastname() == null || employee.getLastname().isBlank()) {
+            throw new ValidationException("Last name is mandatory.");
+        }
 
+        if (employee.getPhoneNumber() == null || employee.getPhoneNumber().isBlank()) {
+            throw new ValidationException("Phone number is mandatory.");
+        }
+        if (employee.getHireDate() == null) {
+            throw new ValidationException("Hire date is mandatory.");
+        }
+        if (employee.getJobTitle() == null || employee.getJobTitle().isBlank()) {
+            throw new ValidationException("Job title is mandatory.");
+        }
+
+        if (employee.getLeaveCount() == null || employee.getLeaveCount()<0) {
+            throw new ValidationException("Leave count is mandatory and should be a positive number.");
+        }
+        if (employee.getEmployeeSalary() == null || employee.getLeaveCount()<0) {
+            throw new ValidationException("Employee salary is mandatory and should be a positive number.");
+        }
+        if (employee.getDob() == null) {
+            throw new ValidationException("Date of birth is mandatory.");
+        }
+    }
+
+
+    // apply leave
+    @Transactional
     @Override
     public ApiResponse<LeaveResponseDTO> applyLeave(LeaveEntity entity) {
-
+        validateLeave(entity);
+        log.info("apply leave method started");
         UUID employeeid = entity.getEmployee().getId();
-        EmployeeEntity employeeEntity = erepository.findById(employeeid).get();
+        System.out.println(employeeid);
+       EmployeeEntity employeeEntity = erepository.findById(employeeid).orElseThrow(()-> new ValidationException("Employee Id not found"));
+
+
+        String employeeEmail = employeeEntity.getEmail();
+        String assigningEmail = entity.getAssigningEmail();
 
         Period difference = Period.between(entity.getStartDate(), entity.getEndDate());
         int noOfDays = difference.getDays() + 1;
-        log.info("apply leave method started");
         try {
-            // Check if employee exists
-            if (!isEmployeeExists(entity.getEmployee().getId())) {
-                log.warn("Invalid employee ID");
-                return ApiResponse.<LeaveResponseDTO>builder()
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .message("Invalid employee ID")
-                        .data(null)
-                        .build();
+            if(! isEmployeeExists(employeeid)){
+                throw new ValidationException("Invalid Employee iD");
             }
+
+
             if (employeeEntity.getAvailableLeaves() < noOfDays) {
-                return ApiResponse.<LeaveResponseDTO>builder()
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .message("Insufficient leave balance")
-                        .data(null)
-                        .build();
+                log.warn("Insufficient leave balance");
+                throw new ValidationException("Insufficient leave balance");
             }
             List<LeaveEntity> matchedDates = leaverepo.findLeavesByEmployeeAndDates(employeeid, entity.getStartDate(),
                     entity.getEndDate());
-            if (!matchedDates.isEmpty()) {
-                return ApiResponse.<LeaveResponseDTO>builder()
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .message("Leave dates overlap with existing leave records")
-                        .data(null)
-                        .build();
+            if (!matchedDates.isEmpty() && entity.getId()==null) {
+                log.warn("Leave dates overlap with existing leave records");
+               throw new ValidationException("Leave dates overlap with existing leave records");
             }
             if(employeeEntity.isDelete()){
+                log.warn("Employee is already deleted and not eligible to apply leave");
+                throw new ValidationException("Employee is already deleted and not eligible to apply leave");
+            }
+            if (entity.getId() != null && leaverepo.existsById(entity.getId())) {
+                // It's an update
+                LeaveEntity existingLeave = leaverepo.findById(entity.getId()).get();
+                Period existingdifference = Period.between(existingLeave.getStartDate(), existingLeave.getEndDate());
+                int existingLeaveCount=existingdifference.getDays()+1;
+                if(noOfDays>existingLeaveCount){
+                    int diff=noOfDays-existingLeaveCount;
+                    int totalLeave=employeeEntity.getAvailableLeaves()-diff;
+                    employeeEntity.setAvailableLeaves(totalLeave);
+                }
+                if(noOfDays<existingLeaveCount){
+                    int diff=existingLeaveCount-noOfDays;
+                    int totalLeave=employeeEntity.getAvailableLeaves()+diff;
+                    employeeEntity.setAvailableLeaves(totalLeave);
+                }
+                existingLeave.setStartDate(entity.getStartDate());
+                existingLeave.setEndDate(entity.getEndDate());
+                existingLeave.setLeaveType(entity.getLeaveType());
+                existingLeave.setLeaveReason(entity.getLeaveReason());
+                existingLeave.setStatus(entity.getStatus());
+                existingLeave.setUpdatedAt(LocalDateTime.now()); // Assuming you update the timestamp
+                LeaveEntity updatedLeave = leaverepo.save(existingLeave);
+
+                // Prepare response DTO
+                LeaveResponseDTO updatedDto = createLeaveResponseDTO(updatedLeave);
                 return ApiResponse.<LeaveResponseDTO>builder()
-                        .status(HttpStatus.BAD_REQUEST.value())
-                        .message("Employee is already deleted and not eligible to apply leave")
-                        .data(null)
+                        .status(HttpStatus.OK.value())
+                        .message("Successfully updated leave")
+                        .data(updatedDto)
                         .build();
             }
-
 
             int leaveBalance=employeeEntity.getAvailableLeaves()-noOfDays;
             employeeEntity.setAvailableLeaves(leaveBalance);
-            // Save the leave
+            entity.setStatus("Pending");
             LeaveEntity saved = leaverepo.save(entity);
             log.info("Successfully applied leave");
-
-
-            Optional<EmployeeEntity> byId = erepository.findById(saved.getEmployee().getId());
-
-            String employeeEmail = byId.get().getEmail();
-            String assigningEmail = saved.getAssigningEmail();
-
-            // Check if email addresses are valid
-            if (employeeEmail == null || employeeEmail.isEmpty()) {
-                log.warn("Employee email is null or empty");
-                throw new IllegalArgumentException("Employee email is invalid");
-            }
-            if (assigningEmail == null || assigningEmail.isEmpty()) {
-                log.warn("Assigning email is null or empty");
-                throw new IllegalArgumentException("Assigning email is invalid");
-            }
 
             // Set up the mail sender
             JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
             mailSender.setHost("smtp.gmail.com");
             mailSender.setPort(587);
-            mailSender.setUsername(employeeEmail); // Use the employee email as username
-            mailSender.setPassword("gwsphcbdsbjgolll"); // Securely handle this password
+            mailSender.setUsername(employeeEmail);
+            mailSender.setPassword("gwsphcbdsbjgolll");
 
             Properties props = mailSender.getJavaMailProperties();
             props.put("mail.transport.protocol", "smtp");
@@ -315,7 +350,7 @@ public class LeaveServiceImpl implements LeaveService {
             props.put("mail.smtp.starttls.enable", "true"); // Ensure STARTTLS is enabled
             props.put("mail.debug", "true");
 
-            // Create and configure the email message
+
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(employeeEmail);
             message.setTo(assigningEmail);
@@ -324,62 +359,84 @@ public class LeaveServiceImpl implements LeaveService {
                     " from " + saved.getStartDate() +
                     " to " + saved.getEndDate() +
                     " has been received and is pending approval.");
-
             // Send the email
             try {
                 mailSender.send(message);
                 log.info("Leave request email sent to {}", assigningEmail);
             } catch (MailException e) {
                 log.error("Failed to send email to {}: {}", assigningEmail, e.getMessage());
+                throw new ValidationException("Apply leave failed.May be invalid assignee or employee mail ");
             }
 
-            // Prepare the response DTO
-            LeaveResponseDTO dto = new LeaveResponseDTO();
-            dto.setId(saved.getId());
-            dto.setEmployeeId(saved.getEmployee().getId());
-            dto.setStartDate(saved.getStartDate());
-            dto.setEndDate(saved.getEndDate());
-            dto.setLeaveType(saved.getLeaveType());
-            dto.setStatus(saved.getStatus());
-            dto.setRequestDate(saved.getRequestDate());
-            dto.setLeaveReason(saved.getLeaveReason());
-            dto.setApprovedDate(saved.getApprovedDate());
-            dto.setCreatedAt(saved.getCreatedAt());
-            dto.setUpdatedAt(saved.getUpdatedAt());
 
-            // Return a successful response
+            LeaveResponseDTO savedDto = createLeaveResponseDTO(saved);
+
             return ApiResponse.<LeaveResponseDTO>builder()
                     .status(HttpStatus.OK.value())
                     .message("Successfully applied leave and your leave balance is : "+leaveBalance)
-                    .data(dto)
+                    .data(savedDto)
                     .build();
-        } catch (IllegalArgumentException e) {
+        }
+        catch (ValidationException e) {
             log.error("Validation failed: {}", e.getMessage());
-            return ApiResponse.<LeaveResponseDTO>builder()
-                    .status(HttpStatus.BAD_REQUEST.value())
-                    .message(e.getMessage())
-                    .data(null)
-                    .build();
-        } catch (Exception e) {
+           throw e;
+        }
+        catch (Exception e) {
             log.error("Exception occurred: ", e);
-            return ApiResponse.<LeaveResponseDTO>builder()
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                    .message("An unexpected error occurred")
-                    .data(null)
-                    .build();
-        } finally {
+            throw new RuntimeException( e.getMessage());
+        }
+        finally {
             log.info("Apply leave method completed");
         }
     }
 
+    private LeaveResponseDTO createLeaveResponseDTO(LeaveEntity saved) {
+        // Prepare the response DTO
+        LeaveResponseDTO dto = new LeaveResponseDTO();
+        dto.setId(saved.getId());
+        dto.setEmployeeId(saved.getEmployee().getId());
+        dto.setStartDate(saved.getStartDate());
+        dto.setEndDate(saved.getEndDate());
+        dto.setLeaveType(saved.getLeaveType());
+        dto.setStatus(saved.getStatus());
+        dto.setRequestDate(saved.getRequestDate());
+        dto.setLeaveReason(saved.getLeaveReason());
+        dto.setApprovedDate(saved.getApprovedDate());
+        dto.setCreatedAt(saved.getCreatedAt());
+        dto.setUpdatedAt(saved.getUpdatedAt());
+            return dto;
+    }
     @Override
     public boolean isEmployeeExists(UUID id) {
-        log.info("employee exists method started");
+        System.out.println(id);
+        log.info("Employee exists method started");
         if (erepository.findById(id).isPresent()) {
-            return true;
+           return true;
         }
         return false;
     }
+
+   public void validateLeave(LeaveEntity entity){
+       if (entity.getEmployee().getId() == null) {
+           throw new ValidationException("Employee ID not Found");
+       }
+       if (entity.getStartDate() == null) {
+           throw new ValidationException("Start date is Mandatory");
+       }
+       if (entity.getEndDate() == null) {
+           throw new ValidationException("End date is Mandatory");
+       }
+       if (entity.getLeaveType() == null || entity.getLeaveType().isBlank()) {
+           throw new ValidationException("Leave type is Mandatory");
+       }
+       if (entity.getLeaveReason() == null || entity.getLeaveReason().isBlank()) {
+           throw new ValidationException("Leave reason is Mandatory");
+       }
+       if (entity.getAssigningEmail() == null || entity.getAssigningEmail().isBlank()) {
+           throw new ValidationException("Assigning email cannot be null or blank");
+       }
+   }
+
 
     // stephenDevepriyan
 
