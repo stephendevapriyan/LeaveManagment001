@@ -30,8 +30,11 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -39,7 +42,6 @@ public class PayslipServiceImpl implements PayslipService {
     private final PayslipRep payslipRepository;
     private final LeaveService leaveService;
     EmployeeRepo employeeRepo;
-
     PdfPayslip pdfsave;
 
     public PayslipServiceImpl(PayslipRep payslipRepository, LeaveService leaveService, EmployeeRepo employeeRepo, PdfPayslip pdfsave) {
@@ -168,4 +170,26 @@ public class PayslipServiceImpl implements PayslipService {
 
         return new ErrorUtil<>(true, null, stream);
     }
-}
+    public List<byte[]> getAllPdfFiles() {
+        try {
+            // Retrieve all PayslipPdf entities from the database
+            List<PayslipPdf> pdfList = pdfsave.findAll();
+
+            if (pdfList.isEmpty()) {
+
+                return Collections.emptyList(); // Return an empty list if no PDFs are found
+            }
+
+            // Map the list of PayslipPdf entities to a list of byte arrays
+            List<byte[]> pdfFiles = pdfList.stream()
+                    .map(PayslipPdf::getFile) // Extract the byte[] from each PayslipPdf
+                    .collect(Collectors.toList()); // Collect into a List of byte[]
+
+            return pdfFiles;
+        } catch (Exception e) {
+            // Log the exception
+
+            log.error("Error occurred while retrieving PDF files", e);
+            throw new RuntimeException("An error occurred while retrieving PDF files", e);
+        }
+    }}

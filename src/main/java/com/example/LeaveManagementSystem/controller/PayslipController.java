@@ -4,15 +4,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.http.*;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.LeaveManagementSystem.dto.CreatePayslipDTO;
@@ -111,4 +107,15 @@ public class PayslipController {
                 .headers(headers)
                 .body(res.getData().toByteArray());
     }
-}
+    @GetMapping("/getpdf")
+    public ResponseEntity<List<byte[]>> getAllPdf(){
+   try{
+      List<byte[]> pdf = payslipService.getAllPdfFiles();
+
+        return ResponseEntity.ok(pdf);
+    }catch(Exception e){
+
+       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+   }
+
+}}
