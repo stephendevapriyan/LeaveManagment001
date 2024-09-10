@@ -52,8 +52,8 @@ public class LeaveController {
     }
 
     @PostMapping("/leave")
-    public ResponseEntity<ApiResponse<LeaveResponseDTO>> leaveApply(@RequestBody LeaveEntity entity) {
-        ApiResponse<LeaveResponseDTO> response = service.applyLeave(entity);
+    public ResponseEntity<ApiResponse<LeaveResponseDTO>> leaveApply(@RequestBody LeaveEntity entity,@RequestParam(required = false) boolean update) {
+        ApiResponse<LeaveResponseDTO> response = service.applyLeave(entity,update);
         return new ResponseEntity<>(response, HttpStatus.valueOf(response.getStatus()));
 
     }

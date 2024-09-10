@@ -30,7 +30,7 @@ public interface LeaveService {
 
     public boolean isOrganizationExists(UUID id);
 
-    public ApiResponse<LeaveResponseDTO> applyLeave(LeaveEntity entity);
+    public ApiResponse<LeaveResponseDTO> applyLeave(LeaveEntity entity,boolean isUpdate);
 
     public boolean isEmployeeExists(UUID id);
 
