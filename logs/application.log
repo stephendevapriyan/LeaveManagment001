@@ -5269,6 +5269,7 @@ org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating
 2024-09-09 09:37:20 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
 2024-09-09 09:37:20 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
 2024-09-09 09:37:20 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+<<<<<<< HEAD
 2024-09-09 10:53:36 [restartedMain] INFO  c.e.L.LeaveManagementSystemApplication - Starting LeaveManagementSystemApplication using Java 22.0.2 with PID 8552 (D:\updated project\LeaveManagment001\target\classes started by praveenkumars in D:\updated project\LeaveManagment001)
 2024-09-09 10:53:36 [restartedMain] INFO  c.e.L.LeaveManagementSystemApplication - No active profile set, falling back to 1 default profile: "default"
 2024-09-09 10:53:36 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable

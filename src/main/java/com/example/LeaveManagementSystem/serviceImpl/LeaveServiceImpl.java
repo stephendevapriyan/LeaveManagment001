@@ -72,11 +72,8 @@ public class LeaveServiceImpl implements LeaveService {
         try {
             Optional<OrganizationEntity> orgOpt = orepo.findByEmail(oentity.getEmail());
             if (orgOpt.isPresent() && orgOpt.get().isDelete() && !isUpdate) {
-                return ApiResponse.<OrganizationEntity>builder()
-                        .message("Organization has been deleted earlier please update it")
-                        .status(HttpStatus.OK.value())
-                        .data(null)
-                        .build();
+                log.warn("Organization has been deleted earlier please update it");
+                throw new ValidationException("Organization has been deleted earlier please update it");
             }
             if (!isUpdate && (organizationEmailExists(oentity.getEmail()) || checkLocation(oentity.getLocation()))) {
                 log.warn("already registered company with give email or location");
@@ -193,6 +190,10 @@ public class LeaveServiceImpl implements LeaveService {
                 log.warn("Email id already exists");
                throw new ValidationException("Employee Email id is already exists");
             }
+            if (isUpdate && !isEmailExists(entity.getEmail())) {
+                log.warn("Email id does not exists");
+                throw new ValidationException("Email id does not exists");
+            }
             if (entity.getOrganization() == null || !isOrganizationExists(entity.getOrganization().getId())) {
                 log.warn("Organization Is Not Found");
               throw new IdNotFoundException("Organization Is Not Found");
@@ -254,7 +255,7 @@ public class LeaveServiceImpl implements LeaveService {
 
             return ApiResponse.<EmployeeResponseDTO>builder()
                     .status(HttpStatus.OK.value())
-                    .message("Successfully saved Employee Details")
+                    .message(String.format("Successfully %s Employee Details", status))
                     .data(dto)
                     .build();
         }
@@ -324,7 +325,7 @@ public class LeaveServiceImpl implements LeaveService {
     // apply leave
     @Transactional
     @Override
-    public ApiResponse<LeaveResponseDTO> applyLeave(LeaveEntity entity) {
+    public ApiResponse<LeaveResponseDTO> applyLeave(LeaveEntity entity,boolean isUpdate) {
         validateLeave(entity);
         log.info("apply leave method started");
         UUID employeeid = entity.getEmployee().getId();
@@ -337,6 +338,7 @@ public class LeaveServiceImpl implements LeaveService {
 
         Period difference = Period.between(entity.getStartDate(), entity.getEndDate());
         int noOfDays = difference.getDays() + 1;
+
         try {
             if(! isEmployeeExists(employeeid)){
                 throw new ValidationException("Invalid Employee iD");
@@ -349,7 +351,7 @@ public class LeaveServiceImpl implements LeaveService {
             }
             List<LeaveEntity> matchedDates = leaverepo.findLeavesByEmployeeAndDates(employeeid, entity.getStartDate(),
                     entity.getEndDate());
-            if (!matchedDates.isEmpty() && entity.getId()==null) {
+            if (!matchedDates.isEmpty() && !isUpdate) {
                 log.warn("Leave dates overlap with existing leave records");
                throw new ValidationException("Leave dates overlap with existing leave records");
             }
@@ -357,9 +359,16 @@ public class LeaveServiceImpl implements LeaveService {
                 log.warn("Employee is already deleted and not eligible to apply leave");
                 throw new ValidationException("Employee is already deleted and not eligible to apply leave");
             }
-            if (entity.getId() != null && leaverepo.findById(entity.getId()).isPresent()) {
+            if (isUpdate) {
                 // It's an update
-                LeaveEntity existingLeave = leaverepo.findById(entity.getId()).get();
+                if (entity.getId() == null) {
+                    throw new ValidationException("Leave ID must be provided for an update");
+                }
+
+                LeaveEntity existingLeave = leaverepo.findById(entity.getId())
+                        .orElseThrow(() -> new IdNotFoundException("Leave record not found"));
+
+
                 Period existingdifference = Period.between(existingLeave.getStartDate(), existingLeave.getEndDate());
                 int existingLeaveCount=existingdifference.getDays()+1;
                 if(noOfDays>existingLeaveCount){
@@ -389,12 +398,15 @@ public class LeaveServiceImpl implements LeaveService {
                         .build();
             }
 
-            int leaveBalance=employeeEntity.getAvailableLeaves()-noOfDays;
-            employeeEntity.setAvailableLeaves(leaveBalance);
-            entity.setStatus("Pending");
-            entity.setRequestDate(LocalDateTime.now());
-            LeaveEntity saved = leaverepo.save(entity);
-            log.info("Successfully applied leave");
+            LeaveEntity saved=null;
+    int leaveBalance=employeeEntity.getAvailableLeaves()-noOfDays;
+                employeeEntity.setAvailableLeaves(leaveBalance);
+                entity.setStatus("Pending");
+                entity.setRequestDate(LocalDateTime.now());
+                entity.setCreatedAt(LocalDateTime.now());
+                saved = leaverepo.save(entity);
+                log.info("Successfully applied leave");
+
 
             // Set up the mail sender
             JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
@@ -432,7 +444,7 @@ public class LeaveServiceImpl implements LeaveService {
 
             return ApiResponse.<LeaveResponseDTO>builder()
                     .status(HttpStatus.OK.value())
-                    .message("Successfully applied leave and your leave balance is : "+leaveBalance)
+                    .message("Successfully applied leave")
                     .data(savedDto)
                     .build();
         }
